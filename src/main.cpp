@@ -1,22 +1,19 @@
 /*
  * ClaudeRoboEyes — FluxGarage RoboEyes
- * ESP32 + Nokia 5110 (PCD8544) LCD — 84x48 piksel, SPI
+ * ESP32 + SSD1306 OLED (I2C) — 128x64 piksel
  *
  * Pin Bağlantıları:
- *   CLK  (SCK)  → GPIO 18
- *   DIN  (MOSI) → GPIO 23
- *   DC          → GPIO 2
- *   CE   (CS)   → GPIO 5
- *   RST         → GPIO 4
- *   VCC         → 5V  (bu modül 5V istiyor!)
- *   LIGHT       → GND (arka ışık yanar)
- *   GND         → GND
+ *   VCC  → 3.3V
+ *   GND  → GND
+ *   SCL  → GPIO 22
+ *   SDA  → GPIO 21
+ *   RES  → GPIO 16
  */
 
 #include <Arduino.h>
-#include <SPI.h>
+#include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_PCD8544.h>
+#include <Adafruit_SSD1306.h>
 
 // ESP32 Arduino.h ile RoboEyes DEFAULT makro çakışmasını önle
 #ifdef DEFAULT
@@ -24,40 +21,33 @@
 #endif
 #include <FluxGarage_RoboEyes.h>
 
-#define PIN_DC   2
-#define PIN_CS   5
-#define PIN_RST  4
+#define SCREEN_WIDTH   128
+#define SCREEN_HEIGHT   64
+#define OLED_RESET      16
+#define SCREEN_ADDRESS 0x3C
 
-Adafruit_PCD8544 display(PIN_DC, PIN_CS, PIN_RST);
-RoboEyes<Adafruit_PCD8544> eyes(display);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+RoboEyes<Adafruit_SSD1306> eyes(display);
 
 void setup() {
-  // RST manuel sıfırlama — bazı modüller bunu gerektirir
-  pinMode(PIN_RST, OUTPUT);
-  digitalWrite(PIN_RST, LOW);
-  delay(100);
-  digitalWrite(PIN_RST, HIGH);
-  delay(100);
-
-  // Nokia 5110 başlatma
-  display.begin();
-  display.setBias(7);
-  display.setContrast(60);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    for (;;);  // Ekran bulunamazsa dur
+  }
   display.clearDisplay();
   display.display();
 
-  // RoboEyes başlat — 84x48, max 30fps (Nokia 5110 yavaş)
-  eyes.begin(84, 48, 30);
+  // RoboEyes başlat — 128x64, max 60fps
+  eyes.begin(SCREEN_WIDTH, SCREEN_HEIGHT, 60);
 
-  // Nokia 5110 = 84x48 piksel
-  // Göz boyutu: 2×30px + 10px ara = 70px → her iki yanda 7px boşluk
-  // Göz yüksekliği: 22px → üst/alt 13px boşluk
-  eyes.setWidth(30, 30);
-  eyes.setHeight(22, 22);
-  eyes.setBorderradius(6, 6);
-  eyes.setSpacebetween(10);
+  // 128x64 için göz boyutları:
+  // 2×38px + 16px ara = 92px → her iki yanda 18px boşluk
+  // Göz yüksekliği: 28px → üst/alt 18px boşluk
+  eyes.setWidth(38, 38);
+  eyes.setHeight(28, 28);
+  eyes.setBorderradius(8, 8);
+  eyes.setSpacebetween(16);
 
-  // Monochrome LCD: arka plan=0, çizim=1
+  // Monochrome OLED: arka plan=0 (siyah), çizim=1 (beyaz)
   eyes.setDisplayColors(0, 1);
 
   // Otomatik göz kırpma: her 3±2 sn
@@ -78,11 +68,11 @@ void loop() {
   if (millis() - lastMood > 6000) {
     lastMood = millis();
     switch (moodIndex % 5) {
-      case 0: eyes.setMood(DEFAULT);                     break;
-      case 1: eyes.setMood(HAPPY);                       break;
-      case 2: eyes.anim_laugh();  eyes.setMood(HAPPY);   break;
-      case 3: eyes.setMood(TIRED);                       break;
-      case 4: eyes.anim_confused(); eyes.setMood(DEFAULT); break;
+      case 0: eyes.setMood(DEFAULT);                       break;  // Normal
+      case 1: eyes.setMood(HAPPY);                         break;  // Mutlu
+      case 2: eyes.anim_laugh();  eyes.setMood(HAPPY);     break;  // Gülen
+      case 3: eyes.setMood(TIRED);                         break;  // Yorgun
+      case 4: eyes.anim_confused(); eyes.setMood(DEFAULT); break;  // Şaşırmış
     }
     moodIndex++;
   }

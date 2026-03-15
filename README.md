@@ -1,12 +1,12 @@
-# ClaudeRoboEyes
+# ClaudeRoboEyes — OLED
 
-ESP32 ve Nokia 5110 LCD ekranı kullanarak yumuşak animasyonlu robot gözleri. Gözler otomatik göz kırpar, farklı yönlere bakar ve mutlu, yorgun, sinirli gibi ifadeler sergiler. [FluxGarage RoboEyes](https://github.com/FluxGarage/RoboEyes) kütüphanesi üzerine kurulmuştur.
+ESP32 ve SSD1306 OLED ekranı kullanarak yumuşak animasyonlu robot gözleri. Gözler otomatik göz kırpar, farklı yönlere bakar ve mutlu, yorgun, kafası karışık gibi ifadeler sergiler. [FluxGarage RoboEyes](https://github.com/FluxGarage/RoboEyes) kütüphanesi üzerine kurulmuştur.
 
 ---
 
 ## Ne Yapar?
 
-- Yumuşak animasyonlu iki robot gözü gösterir (Nokia 5110'un nostaljik yeşil/mavi LCD ekranında)
+- Yumuşak animasyonlu iki robot gözü gösterir (128x64 SSD1306 OLED ekranında)
 - Her 3 saniyede bir otomatik göz kırpar
 - Her 4 saniyede bir gözler rastgele yön değiştirir (sağ, sol, yukarı, aşağı)
 - Her 6 saniyede bir yüz ifadesi döngüsel olarak değişir:
@@ -24,28 +24,25 @@ ESP32 ve Nokia 5110 LCD ekranı kullanarak yumuşak animasyonlu robot gözleri. 
 | Parça | Adet |
 |---|---|
 | ESP32 Dev Board | 1 |
-| Nokia 5110 LCD (PCD8544, kırmızı kart) | 1 |
-| Jumper kablo | 8 adet |
+| SSD1306 OLED 128x64 (5 pinli, I2C) | 1 |
+| Jumper kablo | 5 adet |
 | Breadboard | 1 (isteğe bağlı) |
 
 ---
 
 ## Bağlantı Şeması
 
-Nokia 5110 modülünün üzerindeki pin isimlerine bakarak bağla:
+OLED modülünün üzerindeki pin isimlerine bakarak bağla:
 
-| Nokia 5110 Pin | ESP32 Pin | Açıklama |
+| OLED Pin | ESP32 Pin | Açıklama |
 |---|---|---|
-| RST | GPIO 4 | Ekran sıfırlama |
-| CE (CS) | GPIO 5 | Chip seçimi |
-| DC | GPIO 2 | Veri / Komut seçimi |
-| DIN (MOSI) | GPIO 23 | Veri girişi |
-| CLK (SCK) | GPIO 18 | SPI saat sinyali |
-| VCC | **5V** | Güç — bu modül 5V istiyor! |
-| LIGHT | GND | Arka ışık (GND'ye bağlayınca yanar) |
 | GND | GND | Toprak |
+| VCC | **3.3V** | Güç |
+| SCL | GPIO 22 | I2C saat sinyali |
+| SDA | GPIO 21 | I2C veri |
+| RES | GPIO 16 | Ekran sıfırlama |
 
-> **Uyarı:** VCC için ESP32'nin **5V (VIN)** pinini kullan. 3.3V bağlarsan ekranda hiçbir şey görünmez.
+> **Uyarı:** VCC için **3.3V** kullan. 5V bağlarsan ekran zarar görebilir.
 
 ---
 
@@ -59,8 +56,8 @@ Nokia 5110 modülünün üzerindeki pin isimlerine bakarak bağla:
 ### 2. Projeyi Klonla
 
 ```bash
-git clone https://github.com/KULLANICI_ADIN/ClaudeRoboEyes.git
-cd ClaudeRoboEyes
+git clone https://github.com/h4ckcoin/ClaudeRoboEyes_OLED.git
+cd ClaudeRoboEyes_OLED
 ```
 
 ### 3. Kütüphaneleri Yükle ve Derle
@@ -83,12 +80,12 @@ Veya PlatformIO arayüzünde **"Upload"** butonuna tıkla.
 
 ---
 
-## Kontrast Ayarı
+## I2C Adresi Ayarı
 
-Bazı Nokia 5110 modülleri farklı kontrast değerlerine ihtiyaç duyar. Ekran çok koyu veya çok soluk görünüyorsa `src/main.cpp` dosyasındaki şu satırı değiştir:
+Çoğu SSD1306 modülü `0x3C` adresini kullanır. Ekran görünmüyorsa `0x3D` deneyebilirsin:
 
 ```cpp
-display.setContrast(60);  // 40 ile 80 arasında dene
+#define SCREEN_ADDRESS 0x3C  // Görünmüyorsa 0x3D yap
 ```
 
 ---
@@ -98,10 +95,10 @@ display.setContrast(60);  // 40 ile 80 arasında dene
 `src/main.cpp` içinde bu değerleri değiştirerek gözlerin görünümünü ayarlayabilirsin:
 
 ```cpp
-eyes.setWidth(30, 30);        // sol göz genişliği, sağ göz genişliği (piksel)
-eyes.setHeight(22, 22);       // sol göz yüksekliği, sağ göz yüksekliği (piksel)
-eyes.setBorderradius(6, 6);   // köşe yuvarlama (0 = kare, yüksek = daire)
-eyes.setSpacebetween(10);     // iki göz arasındaki boşluk (piksel)
+eyes.setWidth(38, 38);        // sol göz genişliği, sağ göz genişliği (piksel)
+eyes.setHeight(28, 28);       // sol göz yüksekliği, sağ göz yüksekliği (piksel)
+eyes.setBorderradius(8, 8);   // köşe yuvarlama (0 = kare, yüksek = daire)
+eyes.setSpacebetween(16);     // iki göz arasındaki boşluk (piksel)
 ```
 
 ---
@@ -119,7 +116,7 @@ if (millis() - lastMood > 6000) {  // 6000ms = 6 saniye
 ## Proje Yapısı
 
 ```
-ClaudeRoboEyes/
+ClaudeRoboEyes_OLED/
 ├── src/
 │   └── main.cpp          — Ana kaynak kod
 ├── platformio.ini         — PlatformIO konfigürasyonu ve kütüphaneler
@@ -133,7 +130,7 @@ ClaudeRoboEyes/
 
 | Kütüphane | Sürüm | Açıklama |
 |---|---|---|
-| [Adafruit PCD8544](https://github.com/adafruit/Adafruit-PCD8544-Nokia-5110-LCD-library) | ^2.0.1 | Nokia 5110 LCD sürücüsü |
+| [Adafruit SSD1306](https://github.com/adafruit/Adafruit_SSD1306) | ^2.5.9 | SSD1306 OLED sürücüsü |
 | [Adafruit GFX](https://github.com/adafruit/Adafruit-GFX-Library) | ^1.11.9 | Grafik temel kütüphanesi |
 | [FluxGarage RoboEyes](https://github.com/FluxGarage/RoboEyes) | latest | Robot gözü animasyon motoru |
 

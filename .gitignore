@@ -1,12 +1,3 @@
-# PlatformIO derleme çıktıları
 .pio/
-
-# VSCode / Cursor ayarları
 .vscode/
 
-# macOS sistem dosyaları
-.DS_Store
-
-# Geçici dosyalar
-*.tmp
-*.log
